@@ -3607,7 +3607,7 @@ class InboundEmail extends SugarBean
         return ($this->mailbox_type == 'createcase' && !empty($this->groupfolder_id));
     } // fn
 
-    public function handleCreateCase($email, $userId)
+    public function handleCreateCase(Email $email, $userId)
     {
         global $current_user, $mod_strings, $current_language;
         $mod_strings = return_module_language($current_language, "Emails");
@@ -6173,7 +6173,8 @@ class InboundEmail extends SugarBean
             $ret = $this->getImap()->search('UNDELETED UNSEEN');
         }
 
-        LoggerManager::getLogger()->debug('-----> getNewMessageIds() got ' . count($ret) . ' new Messages');
+        $nmessages = is_countable($ret)? count($ret) : 0;
+        LoggerManager::getLogger()->debug('-----> getNewMessageIds() got ' . $nmessages . ' new Messages');
 
         return $ret;
     }
@@ -6188,7 +6189,10 @@ class InboundEmail extends SugarBean
         $service = empty($service) ? $this->getServiceString() : $service;
         $mbox = empty($mbox) ? $this->mailbox : $mbox;
 
-        $connectString = '{' . $this->server_url . ':' . $this->port . '/service=' . $this->protocol . $service . '}';
+        $protocol = $this->protocol ?? 'imap';
+        $port = $this->port ?? '143';
+
+        $connectString = '{' . $this->server_url . ':' . $port . '/service=' . $protocol . $service . '}';
         $connectString .= ($includeMbox) ? $mbox : "";
 
         return $connectString;
@@ -6244,7 +6248,7 @@ class InboundEmail extends SugarBean
             $this->getImap()->setTimeout(3, 15);
 
             $opts = $this->findOptimumSettings($useSsl);
-            if (!empty($opts) && isset($opts['good']) && empty($opts['good'])) {
+            if (!empty($opts) && isset($opts['good']) && empty($opts['bad'])) {
                 $ret = array_pop($opts['err']); // TODO: lost error info?
 
                 return $ret;
